@@ -1,0 +1,128 @@
+# OpenClaw Agent Configuration for ClawFlow Integration
+# This demonstrates how an OpenClaw agent can delegate deterministic tasks to ClawFlow
+
+agent:
+  name: task-extraction-agent
+  description: Extracts actionable tasks from messy input using ClawFlow for deterministic parsing
+  version: 1.0.0
+
+# OpenClaw skills - native and external
+skills:
+  # Native OpenClaw skill for complex reasoning
+  - name: intent-classifier
+    type: openclaw-native
+    description: Determines what type of transformation the user wants
+    model: gpt-4
+    prompt: |
+      Analyze the user input and classify intent:
+      - task_extraction: user wants to create a task list
+      - error_analysis: user pasted error logs
+      - data_transformation: user has messy data to structure
+      - product_planning: user has a raw idea to develop
+      
+      Return JSON: { "intent": "...", "confidence": 0-1 }
+  
+  # External skill: ClawFlow webhook for deterministic execution
+  - name: task-extraction
+    type: webhook
+    description: Fast, deterministic task parsing via ClawFlow (< 5ms)
+    endpoint: http://localhost:3000/api/webhook/openclaw
+    timeout: 5000
+    headers:
+      Content-Type: application/json
+    payload_template: |
+      {
+        "trigger_id": "oc-{{timestamp}}",
+        "flow": "task",
+        "input": "{{user_input}}",
+        "metadata": {
+          "source": "openclaw-agent",
+          "agent_version": "1.0.0"
+        }
+      }
+    
+  - name: debug-analysis
+    type: webhook
+    description: Error log classification via ClawFlow
+    endpoint: http://localhost:3000/api/webhook/openclaw
+    timeout: 5000
+    payload_template: |
+      {
+        "trigger_id": "oc-{{timestamp}}",
+        "flow": "debug",
+        "input": "{{user_input}}"
+      }
+  
+  - name: csv-transformation
+    type: webhook
+    description: CSV parsing and cleaning via ClawFlow
+    endpoint: http://localhost:3000/api/webhook/openclaw
+    timeout: 5000
+    payload_template: |
+      {
+        "trigger_id": "oc-{{timestamp}}",
+        "flow": "csv",
+        "input": "{{user_input}}"
+      }
+  
+  - name: product-roadmap-pipeline
+    type: webhook
+    description: Full pipeline: Clean → Task → Brain for product planning
+    endpoint: http://localhost:3000/api/webhook/openclaw
+    timeout: 10000
+    payload_template: |
+      {
+        "trigger_id": "oc-{{timestamp}}",
+        "flow": "pipeline",
+        "input": "{{user_input}}",
+        "flows": ["clean", "task", "brain"]
+      }
+
+# Decision routing: When to use ClawFlow vs native LLM
+routing:
+  # Fast path: Structured tasks go to ClawFlow
+  - condition: intent == "task_extraction" && input.length < 1000
+    skill: task-extraction
+    reason: "Fast, predictable execution for simple task parsing"
+    estimated_latency: "3-5ms"
+    
+  - condition: intent == "error_analysis"
+    skill: debug-analysis
+    reason: "Deterministic error pattern matching"
+    estimated_latency: "2-4ms"
+    
+  - condition: intent == "data_transformation" && input.contains(",")
+    skill: csv-transformation
+    reason: "Structured data parsing without LLM cost"
+    estimated_latency: "1-3ms"
+    
+  - condition: intent == "product_planning"
+    skill: product-roadmap-pipeline
+    reason: "Multi-stage deterministic transformation"
+    estimated_latency: "4-8ms"
+  
+  # Slow path: Complex tasks use native LLM
+  - condition: intent == "task_extraction" && input.length >= 1000
+    skill: intent-classifier
+    reason: "Long input may need reasoning to extract intent"
+    fallback: task-extraction
+    
+# Example execution flow:
+#
+# 1. User: "build landing page urgent, setup auth by Friday"
+# 2. OpenClaw agent classifies intent → "task_extraction"
+# 3. Routes to ClawFlow task-extraction skill
+# 4. ClawFlow returns in 3ms:
+#    {
+#      "tasks": [
+#        { "task": "Build landing page", "priority": "high" },
+#        { "task": "Setup authentication", "priority": "high", "deadline": "Friday" }
+#      ]
+#    }
+# 5. OpenClaw agent receives structured result, continues orchestration
+#
+# Benefits:
+# - 100x faster than LLM (3ms vs 3000ms)
+# - 100% deterministic output
+# - Zero token cost
+# - Guaranteed JSON structure

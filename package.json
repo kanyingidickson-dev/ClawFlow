@@ -1,0 +1,39 @@
+{
+  "name": "clawflow",
+  "version": "2.1.0",
+  "description": "Deterministic execution backend for OpenClaw agents — fast, reliable skill execution with sub-5ms response times",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.45.2",
+    "next": "^16.2.4",
+    "prompts": "^2.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^8",
+    "eslint-config-next": "^16.2.4",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5",
+    "vitest": "^4.1.4"
+  }
+}

@@ -1,0 +1,139 @@
+# OpenClaw Configuration Example
+# This shows how an OpenClaw agent integrates with ClawFlow
+# for deterministic execution of parsing and transformation tasks
+
+agent:
+  name: "ClawFlow-Integrated-Agent"
+  description: "An OpenClaw agent that delegates deterministic tasks to ClawFlow"
+  version: "1.0.0"
+
+# ClawFlow skills — deterministic execution via webhook
+skills:
+  - name: "clawflow_task_parse"
+    type: "webhook"
+    description: "Parse messy text into structured tasks with priority detection"
+    endpoint: "http://localhost:3000/api/webhook/openclaw"
+    headers:
+      x-api-key: "${CLAWFLOW_API_KEY}"
+      content-type: "application/json"
+    payload_template: |
+      {
+        "trigger_id": "{{trigger_id}}",
+        "flow": "task",
+        "input": "{{user_input}}"
+      }
+    response_mapping:
+      tasks: "execution_data.output.tasks"
+      count: "execution_data.output.count"
+      execution_time_ms: "execution_data.duration"
+
+  - name: "clawflow_brain_plan"
+    type: "webhook"
+    description: "Convert parsed tasks into a structured product roadmap"
+    endpoint: "http://localhost:3000/api/webhook/openclaw"
+    headers:
+      x-api-key: "${CLAWFLOW_API_KEY}"
+    payload_template: |
+      {
+        "trigger_id": "{{trigger_id}}",
+        "flow": "brain",
+        "input": "{{task_summary}}"
+      }
+    response_mapping:
+      plan: "execution_data.output.productPlan"
+
+  - name: "clawflow_debug_analyze"
+    type: "webhook"
+    description: "Analyze error logs and extract actionable issues"
+    endpoint: "http://localhost:3000/api/webhook/openclaw"
+    headers:
+      x-api-key: "${CLAWFLOW_API_KEY}"
+    payload_template: |
+      {
+        "trigger_id": "{{trigger_id}}",
+        "flow": "debug",
+        "input": "{{error_logs}}"
+      }
+    response_mapping:
+      issues: "execution_data.output.issues"
+      critical_count: "execution_data.output.criticalCount"
+
+  - name: "clawflow_pipeline"
+    type: "webhook"
+    description: "Run multi-stage workflow: Clean → Task → Brain"
+    endpoint: "http://localhost:3000/api/webhook/openclaw"
+    headers:
+      x-api-key: "${CLAWFLOW_API_KEY}"
+    payload_template: |
+      {
+        "trigger_id": "{{trigger_id}}",
+        "flow": "pipeline",
+        "input": "{{raw_input}}"
+      }
+
+# Workflows that combine skills
+workflows:
+  - name: "idea_to_roadmap"
+    description: "Convert a raw idea into a structured product roadmap"
+    trigger: "natural_language"
+    steps:
+      - skill: "clawflow_task_parse"
+        input: "{{user_input}}"
+        output_as: "parsed_tasks"
+      
+      - skill: "clawflow_brain_plan"
+        input: "{{parsed_tasks.summary}}"
+        output_as: "roadmap"
+      
+      - action: "present"
+        template: |
+          Here's your product roadmap:
+          
+          Title: {{roadmap.plan.title}}
+          
+          Phases:
+          {{#each roadmap.plan.phases}}
+          - {{phase}} ({{duration}}): {{#each tasks}}{{.}} {{/each}}
+          {{/each}}
+
+  - name: "error_to_action_items"
+    description: "Analyze logs and create prioritized fix list"
+    trigger: "error_paste"
+    steps:
+      - skill: "clawflow_debug_analyze"
+        input: "{{clipboard_content}}"
+        output_as: "analysis"
+      
+      - condition: "{{analysis.critical_count}} > 0"
+        then:
+          - action: "alert"
+            message: "{{analysis.critical_count}} critical issues found"
+        
+      - action: "present"
+        data: "{{analysis.issues}}"
+
+# Configuration for ClawFlow backend
+clawflow_backend:
+  base_url: "http://localhost:3000"
+  api_key: "${CLAWFLOW_API_KEY}"
+  timeout_ms: 10000
+  retry_policy:
+    max_retries: 3
+    backoff: "exponential"
+
+# Agent behavior
+behavior:
+  # When to delegate to ClawFlow vs use local LLM
+  delegation_rules:
+    - condition: "task_type == 'parsing' || task_type == 'validation'"
+      action: "delegate_to_clawflow"
+      reason: "Deterministic tasks are faster and more reliable"
+    
+    - condition: "task_type == 'creative_writing' || task_type == 'reasoning'"
+      action: "use_local_llm"
+      reason: "Creative tasks need model flexibility"
+  
+  # Response handling
+  on_clawflow_error:
+    strategy: "fallback_to_llm"
+    log: true
