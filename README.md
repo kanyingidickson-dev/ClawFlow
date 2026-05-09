@@ -3,15 +3,12 @@
 
 # ⚡ ClawFlow v2.1
 
-**Deterministic Execution Backend for OpenClaw Agents**
-
-### (OpenClaw = brain, ClawFlow = muscle)
+### **The Deterministic Execution Backend for OpenClaw Agents** : (OpenClaw = brain, ClawFlow = muscle) 
 
 > **The problem:** AI agents are great at reasoning, but when you need something done *reliably and instantly*, they fall apart.  
 > **The solution:** ClawFlow is a fast, deterministic execution layer that OpenClaw agents call for structured data transformation — parsing, validation, and workflow orchestration in milliseconds.
 
-Built for the [OpenClaw Challenge](https://dev.to/challenges/openclaw-2026-04-16).
-
+Live: **[https://clawflow-engine/ →](https://clawflow-engine.vercel.app/)**
 ---
 
 ## 🧠 The Idea
@@ -91,9 +88,6 @@ Instead of listing all 14 skills, here are the workflows that demonstrate ClawFl
 </details>
 
 ---
-
-## 🎬 Demo
-Live: **[https://clawflow-engine.vercel.app/ →](https://clawflow-engine.vercel.app/)**
 
 ### Screenshots
 *ClawFlow Dashboard* ![Dashboard](./public/dashboard.png)  
@@ -204,23 +198,18 @@ node trigger.js
 
 ## 🔌 API Reference
 
-### `GET /api/flows`
-
+#### `GET /api/flows`
 Returns all available flows with metadata.
 
-### `POST /api/run-flow`
-
+#### `POST /api/run-flow`
 Execute a single flow.
 
-### `POST /api/run-pipeline`
+#### `POST /api/run-pipeline`
 Execute a sequence of flows.
 **Payload:** `{ "input": "string", "flows": ["clean", "task"] }`
 
-### `POST /api/webhook/openclaw`
-
-**OpenClaw Integration Endpoint**
-
-Authenticates via `x-api-key` header (if `OPENCLAW_API_KEY` is configured), executes the requested flow, and returns structured data for the agent.
+#### `POST /api/webhook/openclaw`
+**OpenClaw Integration Endpoint** : Authenticates via `x-api-key` header (if `OPENCLAW_API_KEY` is configured), executes the requested flow, and returns structured data for the agent.
 
 **Request:**
 ```json
@@ -250,7 +239,8 @@ Authenticates via `x-api-key` header (if `OPENCLAW_API_KEY` is configured), exec
 }
 ```
 
-See [`openclaw.config.yml`](./openclaw.config.yml) for a full agent configuration example.  
+See [`openclaw.config.yml`](./openclaw.config.yml) for a full agent configuration example.
+
 📖 **Full Integration Guide:** [`OPENCLAW_INTEGRATION.md`](./OPENCLAW_INTEGRATION.md) — detailed architecture, examples, and routing strategies.
 
 ---
